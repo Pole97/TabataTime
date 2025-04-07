@@ -1,216 +1,326 @@
-import 'package:english_words/english_words.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-void main() {
-  runApp(TabataTime());
-}
 
 // Definizione degli stati del timer
-enum TimerState { stopped, work, rest, paused }
+enum TimerState { stopped, work, rest, paused, restBetweenSets }
 
-class TabataTime extends StatelessWidget {
-  const TabataTime({super.key});
+// Widget principale per il timer Tabata
+class TabataTimer extends StatefulWidget {
+  const TabataTimer({super.key});
+
+  @override
+  State<TabataTimer> createState() => _TabataTimerState();
+}
+
+class _TabataTimerState extends State<TabataTimer> {
+  // Impostazioni predefinite del timer Tabata
+  int _workTimeSeconds = 30; // Tempo di lavoro in secondi
+  int _restTimeSeconds = 15; // Tempo di riposo in secondi
+  int _restBetweenSetsTimeSeconds = 15; // Tempo di riposo in secondi
+  int _totalRounds = 4; // Numero totale di round
+  int _totalSets = 3; // Numero totale di set
+
+  // Stato corrente del timer
+  TimerState _currentState = TimerState.stopped;
+  int _currentRound = 0;
+  int _currentSet = 0;
+  int _currentTimeRemaining = 0; // Tempo rimanente nella fase corrente
+  Timer? _timer; // Oggetto Timer per il conto alla rovescia
+
+  // Funzione per avviare il timer
+  void _startTimer() {
+    if (_currentState == TimerState.stopped ||
+        _currentState == TimerState.paused) {
+      // Se è in pausa, riprende semplicemente il timer
+      if (_currentState == TimerState.paused) {
+        _resumeTimerLoop();
+        return;
+      }
+
+      // Altrimenti, inizia dal primo round di lavoro
+      _currentRound = 1;
+      _currentState = TimerState.work;
+      _currentTimeRemaining = _workTimeSeconds;
+      _startTimerLoop();
+      setState(() {}); // Aggiorna l'interfaccia utente
+    }
+  }
+
+  // Funzione per mettere in pausa il timer
+  void _pauseTimer() {
+    if (_currentState == TimerState.work || _currentState == TimerState.rest) {
+      _timer?.cancel(); // Interrompe il timer
+      _currentState = TimerState.paused;
+      setState(() {}); // Aggiorna l'interfaccia utente
+    }
+  }
+
+  // Funzione per riprendere il timer dopo la pausa
+  void _resumeTimerLoop() {
+    if (_currentState == TimerState.paused) {
+      // Riprende lo stato precedente (lavoro o riposo)
+      // Nota: _currentState viene ripristinato in _startTimerLoop
+      _startTimerLoop();
+      setState(() {});
+    }
+  }
+
+  // Funzione per resettare il timer
+  void _resetTimer() {
+    _timer?.cancel(); // Interrompe il timer se attivo
+    _currentState = TimerState.stopped;
+    _currentRound = 0;
+    _currentTimeRemaining =
+        _workTimeSeconds; // Reimposta al tempo di lavoro iniziale
+    setState(() {}); // Aggiorna l'interfaccia utente
+  }
+
+  // Loop principale del timer (gestisce le fasi di lavoro e riposo)
+  void _startTimerLoop() {
+    // Ripristina lo stato corretto se si riprende dalla pausa
+    if (_currentState == TimerState.paused) {
+      // Determina se era in pausa durante il lavoro o il riposo
+      // Questo è un esempio, potresti voler salvare lo stato esatto prima della pausa
+      // Per semplicità, assumiamo che riprenda la fase corrente basata sul tempo rimanente
+      // Se il tempo rimanente è maggiore di 0, continua la fase corrente,
+      // altrimenti passa alla fase successiva.
+      // Una logica più robusta potrebbe salvare lo stato esatto (work/rest) al momento della pausa.
+      if (_currentTimeRemaining > 0) {
+        // Determina se era lavoro o riposo (logica semplificata)
+        // Qui potremmo aver bisogno di una variabile aggiuntiva per sapere se era in work o rest prima della pausa
+        // Per ora, assumiamo che riprenda come se fosse lavoro se il round non è completo
+        _currentState =
+            (_currentRound <= _totalRounds) ? TimerState.work : TimerState.rest;
+      } else {
+        // Se il tempo era 0, passa alla fase successiva
+        _moveToNextPhase();
+      }
+    }
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_currentTimeRemaining > 1) {
+        // Decrementa il tempo rimanente
+        setState(() {
+          _currentTimeRemaining--;
+        });
+      } else {
+        // Il tempo per la fase corrente è scaduto
+        timer.cancel(); // Interrompe il timer corrente
+        _moveToNextPhase(); // Passa alla fase successiva
+      }
+    });
+  }
+
+  // Funzione per passare alla fase successiva (lavoro -> riposo o riposo -> lavoro)
+  void _moveToNextPhase() {
+    if (_currentState == TimerState.work) {
+      // Fine fase di lavoro
+      if (_currentRound < _totalRounds) {
+        // Passa alla fase di riposo
+        _currentState = TimerState.rest;
+        _currentTimeRemaining = _restTimeSeconds;
+        _startTimerLoop(); // Avvia il timer per il riposo
+      } else if (_currentSet < _totalSets) {
+        // Ci fermiamo prima di passare al prossimo round
+        _currentState = TimerState.restBetweenSets;
+        _currentTimeRemaining = _restBetweenSetsTimeSeconds;
+        _startTimerLoop(); // Avvia il timer per il riposo
+      } else {
+        // Tutti i round completati
+        _resetTimer(); // Resetta alla fine
+      }
+    } else if (_currentState == TimerState.rest) {
+      // Fine fase di riposo
+      _currentRound++; // Passa al round successivo
+      _currentState = TimerState.work;
+      _currentTimeRemaining = _workTimeSeconds;
+      _startTimerLoop(); // Avvia il timer per il lavoro
+    } else if (_currentState == TimerState.restBetweenSets) {
+      // Fine fase di riposo tra set
+      _currentSet++; // Passiamo al set successivo
+      _currentRound = 0; // Si azzerano i round
+      _currentState = TimerState.work;
+      _currentTimeRemaining = _workTimeSeconds;
+      _startTimerLoop(); // Avvia il timer per il lavoro
+    }
+    setState(() {}); // Aggiorna l'UI in ogni caso
+  }
+
+  // Formatta il tempo in MM:SS
+  String _formatTime(int totalSeconds) {
+    final duration = Duration(seconds: totalSeconds);
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  // Colore di sfondo basato sullo stato
+  Color _getBackgroundColor() {
+    switch (_currentState) {
+      case TimerState.work:
+        return Colors.green.shade300;
+      case TimerState.rest:
+        return Colors.blue.shade300;
+      case TimerState.paused:
+        return Colors.grey.shade400;
+      case TimerState.stopped:
+        return Colors.white;
+      case TimerState.restBetweenSets:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+    }
+  }
+
+  // Testo dello stato corrente
+  String _getStateText() {
+    switch (_currentState) {
+      case TimerState.work:
+        return 'LAVORO';
+      case TimerState.rest:
+        return 'RIPOSO';
+      case TimerState.paused:
+        return 'PAUSA';
+      case TimerState.stopped:
+        return 'PRONTO?';
+      case TimerState.restBetweenSets:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer
+        ?.cancel(); // Assicura che il timer sia cancellato quando il widget viene rimosso
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => TabataTimeState(),
-      child: MaterialApp(
-        title: 'Tabata Time',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        home: TabataHomePage(),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Timer Tabata'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-    );
-  }
-}
-
-class TabataTimeState extends ChangeNotifier {
-  var current = WordPair.random();
-
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>{};
-
-  void toggleFavourite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
-    } else {
-      favorites.add(current);
-    }
-    notifyListeners();
-  }
-}
-
-class TabataHomePage extends StatefulWidget {
-  const TabataHomePage({super.key});
-
-  @override
-  State<TabataHomePage> createState() => _TabataHomePageState();
-}
-
-class _TabataHomePageState extends State<TabataHomePage> {
-  var selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-      case 1:
-        page = FavoritesPage();
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Scaffold(
-          body: Row(
-            children: [
-              SafeArea(
-                child: NavigationRail(
-                  extended: constraints.maxWidth >= 600,
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home),
-                      label: Text('Home'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.favorite),
-                      label: Text('Favorites'),
-                    ),
-                  ],
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (value) {
-                    setState(() {
-                      selectedIndex = value;
-                    });
-                  },
+      body: AnimatedContainer(
+        // Aggiunge un'animazione al cambio colore
+        duration: const Duration(milliseconds: 500),
+        color: _getBackgroundColor(),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              // Indicatore dello stato e del round
+              Text(
+                _currentState == TimerState.stopped
+                    ? 'Premi Start'
+                    : '${_getStateText()} - Round $_currentRound/$_totalRounds - Set $_currentSet/$_totalSets',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      _currentState == TimerState.stopped
+                          ? Colors.black
+                          : Colors.white,
                 ),
               ),
-              Expanded(
-                child: Container(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: page,
+              const SizedBox(height: 20),
+
+              // Display del tempo rimanente
+              Text(
+                _formatTime(
+                  _currentTimeRemaining > 0
+                      ? _currentTimeRemaining
+                      : (_currentState == TimerState.stopped
+                          ? _workTimeSeconds
+                          : 0),
+                ), // Mostra tempo lavoro se fermo
+                style: TextStyle(
+                  fontSize: 80,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      _currentState == TimerState.stopped
+                          ? Colors.black
+                          : Colors.white,
                 ),
               ),
+              const SizedBox(height: 40),
+
+              // Pulsanti di controllo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  // Pulsante Start/Pausa
+                  if (_currentState == TimerState.stopped ||
+                      _currentState == TimerState.paused)
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.play_arrow),
+                      label: Text(
+                        _currentState == TimerState.stopped
+                            ? 'Start'
+                            : 'Riprendi',
+                      ),
+                      onPressed: _startTimer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
+                        ),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                    )
+                  else if (_currentState == TimerState.work ||
+                      _currentState == TimerState.rest)
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.pause),
+                      label: const Text('Pausa'),
+                      onPressed: _pauseTimer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
+                        ),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+
+                  const SizedBox(width: 20),
+
+                  // Pulsante Reset (visibile solo se il timer non è fermo)
+                  if (_currentState != TimerState.stopped)
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.stop),
+                      label: const Text('Reset'),
+                      onPressed: _resetTimer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
+                        ),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 50),
+              // TODO: Aggiungere qui i controlli per modificare workTime, restTime, totalRounds
+              // Esempio: Slider o TextField per ogni valore
             ],
           ),
-        );
-      },
-    );
-  }
-}
-
-class GeneratorPage extends StatelessWidget {
-  const GeneratorPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<TabataTimeState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          BigCard(pair: pair),
-          SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavourite();
-                },
-                label: Text('Like'),
-                icon: Icon(icon),
-                iconAlignment: IconAlignment.start,
-              ),
-              SizedBox(width: 10),
-
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<TabataTimeState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(child: Text('No favorites yet.'));
-    }
-
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text(
-            'You have '
-            '${appState.favorites.length} favorites:',
-          ),
-        ),
-        for (var pair in appState.favorites)
-          ListTile(
-            leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
-          ),
-      ],
-    );
-  }
-}
-
-class BigCard extends StatelessWidget {
-  const BigCard({super.key, required this.pair});
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          pair.asLowerCase,
-          style: style,
-          semanticsLabel: "${pair.first} ${pair.second}",
         ),
       ),
     );
   }
+}
+
+// Funzione main per eseguire l'app (necessaria per un'app Flutter completa)
+void main() {
+  runApp(const MaterialApp(home: TabataTimer()));
 }
