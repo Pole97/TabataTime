@@ -6,6 +6,9 @@ void main() {
   runApp(TabataTime());
 }
 
+// Definizione degli stati del timer
+enum TimerState { stopped, work, rest, paused }
+
 class TabataTime extends StatelessWidget {
   const TabataTime({super.key});
 
