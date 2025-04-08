@@ -6,20 +6,106 @@ enum TimerState { stopped, work, rest, paused, restBetweenSets }
 
 // Widget principale per il timer Tabata
 class TabataTimer extends StatefulWidget {
-  const TabataTimer({super.key});
+  final int workTimeSeconds;
+  final int restTimeSeconds;
+  final int restBetweenSetsTimeSeconds;
+  final int totalRounds;
+  final int totalSets;
+  TabataTimer({
+    required this.workTimeSeconds,
+    required this.restTimeSeconds,
+    required this.restBetweenSetsTimeSeconds,
+    required this.totalRounds,
+    required this.totalSets,
+  });
+  //const TabataTimer({super.key});
 
   @override
   State<TabataTimer> createState() => _TabataTimerState();
 }
 
-class _TabataTimerState extends State<TabataTimer> {
-  // Impostazioni predefinite del timer Tabata
+// Widget principale per il timer Tabata
+class TabataTimerHome extends StatefulWidget {
+  const TabataTimerHome({super.key});
+
+  @override
+  State<TabataTimerHome> createState() => _TabataTimerHomeState();
+}
+
+class _TabataTimerHomeState extends State<TabataTimerHome> {
   int _workTimeSeconds = 30; // Tempo di lavoro in secondi
   int _restTimeSeconds = 15; // Tempo di riposo in secondi
   int _restBetweenSetsTimeSeconds = 15; // Tempo di riposo in secondi
   int _totalRounds = 4; // Numero totale di round
   int _totalSets = 3; // Numero totale di set
 
+  // Stato corrente del timer
+  TimerState _currentState = TimerState.stopped;
+  int _currentRound = 0;
+  int _currentSet = 0;
+  int _currentTimeRemaining = 0; // Tempo rimanente nella fase corrente
+  Timer? _timer; // Oggetto Timer per il conto alla rovescia
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Timer Tabata'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Center(
+          child: Column(
+            children: [
+              Text(_workTimeSeconds.toString()),
+              TextField(
+                onChanged: (value) {
+                  if (int.tryParse(value) != null) {
+                    _workTimeSeconds = int.parse(value);
+                    setState(() {});
+                    print(_workTimeSeconds);
+                  }
+                },
+                decoration: InputDecoration(labelText: 'Work time'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  // Navigate back to first route when tapped.
+                  Navigator.pop(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => TabataTimer(
+                            workTimeSeconds: _workTimeSeconds,
+                            restTimeSeconds: _restTimeSeconds,
+                            restBetweenSetsTimeSeconds:
+                                _restBetweenSetsTimeSeconds,
+                            totalRounds: _totalRounds,
+                            totalSets: _totalSets,
+                          ),
+                    ),
+                  );
+                },
+                child: const Text('Go back!'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabataTimerState extends State<TabataTimer> {
+  /*// Impostazioni predefinite del timer Tabata
+  int _workTimeSeconds = 30; // Tempo di lavoro in secondi
+  int _restTimeSeconds = 15; // Tempo di riposo in secondi
+  int _restBetweenSetsTimeSeconds = 15; // Tempo di riposo in secondi
+  int _totalRounds = 4; // Numero totale di round
+  int _totalSets = 3; // Numero totale di set
+  */
   // Stato corrente del timer
   TimerState _currentState = TimerState.stopped;
   int _currentRound = 0;
@@ -40,7 +126,7 @@ class _TabataTimerState extends State<TabataTimer> {
       // Altrimenti, inizia dal primo round di lavoro
       _currentRound = 1;
       _currentState = TimerState.work;
-      _currentTimeRemaining = _workTimeSeconds;
+      _currentTimeRemaining = widget.workTimeSeconds;
       _startTimerLoop();
       setState(() {}); // Aggiorna l'interfaccia utente
     }
@@ -71,7 +157,7 @@ class _TabataTimerState extends State<TabataTimer> {
     _currentState = TimerState.stopped;
     _currentRound = 0;
     _currentTimeRemaining =
-        _workTimeSeconds; // Reimposta al tempo di lavoro iniziale
+        widget.workTimeSeconds; // Reimposta al tempo di lavoro iniziale
     setState(() {}); // Aggiorna l'interfaccia utente
   }
 
@@ -90,7 +176,9 @@ class _TabataTimerState extends State<TabataTimer> {
         // Qui potremmo aver bisogno di una variabile aggiuntiva per sapere se era in work o rest prima della pausa
         // Per ora, assumiamo che riprenda come se fosse lavoro se il round non è completo
         _currentState =
-            (_currentRound <= _totalRounds) ? TimerState.work : TimerState.rest;
+            (_currentRound <= widget.totalRounds)
+                ? TimerState.work
+                : TimerState.rest;
       } else {
         // Se il tempo era 0, passa alla fase successiva
         _moveToNextPhase();
@@ -115,15 +203,15 @@ class _TabataTimerState extends State<TabataTimer> {
   void _moveToNextPhase() {
     if (_currentState == TimerState.work) {
       // Fine fase di lavoro
-      if (_currentRound < _totalRounds) {
+      if (_currentRound < widget.totalRounds) {
         // Passa alla fase di riposo
         _currentState = TimerState.rest;
-        _currentTimeRemaining = _restTimeSeconds;
+        _currentTimeRemaining = widget.restTimeSeconds;
         _startTimerLoop(); // Avvia il timer per il riposo
-      } else if (_currentSet < _totalSets) {
+      } else if (_currentSet < widget.totalSets) {
         // Ci fermiamo prima di passare al prossimo round
         _currentState = TimerState.restBetweenSets;
-        _currentTimeRemaining = _restBetweenSetsTimeSeconds;
+        _currentTimeRemaining = widget.restBetweenSetsTimeSeconds;
         _startTimerLoop(); // Avvia il timer per il riposo
       } else {
         // Tutti i round completati
@@ -133,14 +221,14 @@ class _TabataTimerState extends State<TabataTimer> {
       // Fine fase di riposo
       _currentRound++; // Passa al round successivo
       _currentState = TimerState.work;
-      _currentTimeRemaining = _workTimeSeconds;
+      _currentTimeRemaining = widget.workTimeSeconds;
       _startTimerLoop(); // Avvia il timer per il lavoro
     } else if (_currentState == TimerState.restBetweenSets) {
       // Fine fase di riposo tra set
       _currentSet++; // Passiamo al set successivo
       _currentRound = 0; // Si azzerano i round
       _currentState = TimerState.work;
-      _currentTimeRemaining = _workTimeSeconds;
+      _currentTimeRemaining = widget.workTimeSeconds;
       _startTimerLoop(); // Avvia il timer per il lavoro
     }
     setState(() {}); // Aggiorna l'UI in ogni caso
@@ -215,7 +303,7 @@ class _TabataTimerState extends State<TabataTimer> {
               Text(
                 _currentState == TimerState.stopped
                     ? 'Premi Start'
-                    : '${_getStateText()} - Round $_currentRound/$_totalRounds - Set $_currentSet/$_totalSets',
+                    : '${_getStateText()} - Round $_currentRound/$widget.totalRounds - Set $_currentSet/$widget.totalSets',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -233,7 +321,7 @@ class _TabataTimerState extends State<TabataTimer> {
                   _currentTimeRemaining > 0
                       ? _currentTimeRemaining
                       : (_currentState == TimerState.stopped
-                          ? _workTimeSeconds
+                          ? widget.workTimeSeconds
                           : 0),
                 ), // Mostra tempo lavoro se fermo
                 style: TextStyle(
@@ -310,6 +398,18 @@ class _TabataTimerState extends State<TabataTimer> {
                 ],
               ),
               const SizedBox(height: 50),
+              ElevatedButton(
+                onPressed: () {
+                  // Navigate back to first route when tapped.
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TabataTimerHome(),
+                    ),
+                  );
+                },
+                child: const Text('Finish'),
+              ),
               // TODO: Aggiungere qui i controlli per modificare workTime, restTime, totalRounds
               // Esempio: Slider o TextField per ogni valore
             ],
@@ -322,5 +422,5 @@ class _TabataTimerState extends State<TabataTimer> {
 
 // Funzione main per eseguire l'app (necessaria per un'app Flutter completa)
 void main() {
-  runApp(const MaterialApp(home: TabataTimer()));
+  runApp(const MaterialApp(home: TabataTimerHome()));
 }
