@@ -15,10 +15,10 @@ class _TabataSettingsScreenState extends State<TabataSettingsScreen> {
   final _prepController = TextEditingController(
     text: '10',
   ); // Tempo di preparazione
-  final _workController = TextEditingController(text: '20');
-  final _restController = TextEditingController(text: '10');
+  final _workController = TextEditingController(text: '30');
+  final _restController = TextEditingController(text: '15');
   final _setsController = TextEditingController(text: '3');
-  final _roundsController = TextEditingController(text: '8');
+  final _roundsController = TextEditingController(text: '4');
   final _restBetweenSetsController = TextEditingController(text: '60');
 
   @override
@@ -36,10 +36,10 @@ class _TabataSettingsScreenState extends State<TabataSettingsScreen> {
   void _startWorkout() {
     // Leggi i valori, con fallback in caso di errore di parsing
     final prepTime = int.tryParse(_prepController.text) ?? 10;
-    final workTime = int.tryParse(_workController.text) ?? 20;
-    final restTime = int.tryParse(_restController.text) ?? 10;
+    final workTime = int.tryParse(_workController.text) ?? 30;
+    final restTime = int.tryParse(_restController.text) ?? 15;
     final sets = int.tryParse(_setsController.text) ?? 3;
-    final rounds = int.tryParse(_roundsController.text) ?? 8;
+    final rounds = int.tryParse(_roundsController.text) ?? 4;
     final restBetweenSets = int.tryParse(_restBetweenSetsController.text) ?? 60;
 
     // Naviga alla schermata del timer usando Navigator.push
