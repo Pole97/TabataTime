@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'timer_screen.dart';
+import 'settings_screen.dart'; // Import the settings screen
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+class TabataHomeScreen extends StatefulWidget {
+  const TabataHomeScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<TabataHomeScreen> createState() => _TabataHomeScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _TabataHomeScreenState extends State<TabataHomeScreen> {
+  // Initialize controllers without default text
   final _prepController = TextEditingController();
   final _workController = TextEditingController();
   final _restController = TextEditingController();
@@ -20,12 +23,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSettings(); // Load existing settings when the screen opens
+    _loadSettings(); // Load saved settings on init
   }
 
   // Load settings from SharedPreferences
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    // Use saved values or fall back to original defaults if none are saved
     setState(() {
       _prepController.text = (prefs.getInt('prepTime') ?? 10).toString();
       _workController.text = (prefs.getInt('workTime') ?? 30).toString();
@@ -35,27 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _restBetweenSetsController.text =
           (prefs.getInt('restBetweenSets') ?? 15).toString();
     });
-  }
-
-  // Save settings to SharedPreferences
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('prepTime', int.tryParse(_prepController.text) ?? 10);
-    await prefs.setInt('workTime', int.tryParse(_workController.text) ?? 30);
-    await prefs.setInt('restTime', int.tryParse(_restController.text) ?? 15);
-    await prefs.setInt('sets', int.tryParse(_setsController.text) ?? 3);
-    await prefs.setInt('rounds', int.tryParse(_roundsController.text) ?? 4);
-    await prefs.setInt(
-      'restBetweenSets',
-      int.tryParse(_restBetweenSetsController.text) ?? 15,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Settings Saved!')));
-      Navigator.pop(context); // Go back after saving
-    }
   }
 
   @override
@@ -69,7 +52,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  // Helper widget (same as in home_screen.dart)
+  // Navigate to Settings Screen and reload settings when returning
+  void _navigateToSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+    // Reload settings when returning from the settings screen
+    _loadSettings();
+  }
+
+  // _startWorkout remains largely the same, it already uses controller values
+  void _startWorkout() {
+    final prepTime = int.tryParse(_prepController.text) ?? 10;
+    final workTime = int.tryParse(_workController.text) ?? 30;
+    final restTime = int.tryParse(_restController.text) ?? 15;
+    final sets = int.tryParse(_setsController.text) ?? 3;
+    final rounds = int.tryParse(_roundsController.text) ?? 4;
+    final restBetweenSets = int.tryParse(_restBetweenSetsController.text) ?? 15;
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => TabataTimerScreen(
+                preparationTimeSeconds: prepTime,
+                workTimeSeconds: workTime,
+                restTimeSeconds: restTime,
+                totalSets: sets,
+                totalRounds: rounds,
+                restBetweenSetsTimeSeconds: restBetweenSets,
+              ),
+        ),
+      );
+    }
+  }
+
+  // _buildInputField remains the same
   Widget _buildInputField({
     required String label,
     required TextEditingController controller,
@@ -83,7 +103,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           labelText: label,
           prefixIcon: Icon(
             icon,
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: .7),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: .7), // Use theme color
           ),
         ),
         keyboardType: TextInputType.number,
@@ -99,17 +121,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Modify Defaults'),
-        leading: IconButton(
-          // Add a back button explicitly
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Tabata Workout Setup'), // Changed title slightly
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        actions: [
+          // Add actions for the settings button
+          IconButton(
+            icon: const Icon(Icons.settings_rounded),
+            tooltip: 'Modify Defaults',
+            onPressed: _navigateToSettings, // Navigate to settings
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
@@ -122,38 +150,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
+                      // Input fields remain the same, using the modified _buildInputField
                       _buildInputField(
-                        label: 'Default Preparation Time (sec)',
+                        label: 'Preparation Time (sec)',
                         controller: _prepController,
                         icon: Icons.hourglass_empty_rounded,
                       ),
                       const SizedBox(height: 12),
                       _buildInputField(
-                        label: 'Default Work Time (sec)',
+                        label: 'Work Time (sec)',
                         controller: _workController,
                         icon: Icons.fitness_center_rounded,
                       ),
                       const SizedBox(height: 12),
                       _buildInputField(
-                        label: 'Default Rest Time (sec)',
+                        label: 'Rest Time (sec)',
                         controller: _restController,
                         icon: Icons.pause_circle_outline_rounded,
                       ),
                       const SizedBox(height: 12),
                       _buildInputField(
-                        label: 'Default Rounds per Set',
+                        label: 'Rounds per Set',
                         controller: _roundsController,
                         icon: Icons.repeat_rounded,
                       ),
                       const SizedBox(height: 12),
                       _buildInputField(
-                        label: 'Default Number of Sets',
+                        label: 'Number of Sets',
                         controller: _setsController,
                         icon: Icons.layers_rounded,
                       ),
                       const SizedBox(height: 12),
                       _buildInputField(
-                        label: 'Default Rest Between Sets (sec)',
+                        label: 'Rest Between Sets (sec)',
                         controller: _restBetweenSetsController,
                         icon: Icons.replay_10_rounded,
                       ),
@@ -163,9 +192,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
-                icon: const Icon(Icons.save_rounded),
-                label: const Text('Save Defaults'),
-                onPressed: _saveSettings, // Call save function
+                icon: const Icon(Icons.timer_rounded, size: 24),
+                label: const Text('Start Workout'),
+                onPressed: _startWorkout,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
