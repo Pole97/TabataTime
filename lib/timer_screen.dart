@@ -399,7 +399,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
       case TimerState.preparing:
         return Colors.teal.shade300; // More saturated teal/blue
       case TimerState.work:
-        return Colors.green.shade500; // Stronger green
+        return Colors.orange.shade400; // Vibrant orange/yellow
       case TimerState.rest:
         return Colors.blue.shade500; // Stronger blue
       case TimerState.restBetweenSets:
@@ -407,7 +407,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
       case TimerState.paused:
         return Colors.grey.shade500; // Slightly darker grey
       case TimerState.finished:
-        return Colors.orange.shade400; // Vibrant orange/yellow
+        return Colors.green.shade500; // Stronger green
       case TimerState.stopped:
       default:
         return Colors.grey.shade100; // Light grey for stopped
