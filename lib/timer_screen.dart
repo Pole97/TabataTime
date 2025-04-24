@@ -230,7 +230,13 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
 
   void _moveToNextPhase() {
     if (!mounted) return;
-    TimerState nextState = _currentState;
+    TimerState nextState;
+    if (_currentState == TimerState.paused && _stateBeforePause != null) {
+      nextState = _stateBeforePause!;
+      _currentState = nextState;
+    } else {
+      nextState = _currentState;
+    }
     int nextTime = 0;
     bool shouldStartLoop = true;
     switch (_currentState) {
@@ -293,8 +299,8 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
     int timeSkipped = _currentTimeRemaining;
     _totalTimeRemaining = max(0, _totalTimeRemaining - timeSkipped);
     _timer?.cancel();
-    _stateBeforePause = null;
     _moveToNextPhase();
+    _stateBeforePause = null;
   }
 
   void _skipPrevious() {
@@ -346,6 +352,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
         } else {
           prevState = TimerState.rest;
           prevTime = widget.restTimeSeconds;
+          _currentRound--;
         }
       case TimerState.rest:
         prevState = TimerState.work;
