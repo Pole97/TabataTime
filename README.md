@@ -45,11 +45,11 @@ These instructions will get you a copy of the project up and running on your loc
     ```bash
     git clone [https://github.com/Pole97/TabataTime.git](https://github.com/Pole97/TabataTime.git)
     ```
-    2.  **Navigate into the directory:**
+2.  **Navigate into the directory:**
     ```bash
     cd TabataTime 
     ```
-    3.  **Install dependencies:**
+3.  **Install dependencies:**
     ```bash
     flutter pub get
     ```
