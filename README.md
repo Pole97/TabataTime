@@ -71,13 +71,13 @@ These instructions will get you a copy of the project up and running on your loc
 ## 🏗️ Project Structure
 
 The project follows a simple screen-based structure:
-
+```
 lib/
 |-- main.dart             # Entry point, MaterialApp setup & theme
 |-- home_screen.dart      # Screen for setting workout parameters
 |-- timer_screen.dart     # Screen displaying and running the timer
 |-- settings_screen.dart  # Screen for modifying and saving default values
-
+```
 
 ## 🤝 Contributing
 
