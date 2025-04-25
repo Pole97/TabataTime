@@ -429,19 +429,19 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
             : _currentState;
     switch (stateForText) {
       case TimerState.preparing:
-        return 'PREPARAZIONE';
+        return 'PREPARE';
       case TimerState.work:
-        return 'LAVORO';
+        return 'WORKOUT';
       case TimerState.rest:
-        return 'RIPOSO';
+        return 'REST';
       case TimerState.restBetweenSets:
-        return 'RIPOSO TRA SET';
+        return 'REST BETWEEN SET';
       case TimerState.paused:
-        return 'PAUSA';
+        return 'PAUSE';
       case TimerState.stopped:
-        return 'PRONTO?';
+        return 'READY?';
       case TimerState.finished:
-        return 'FINITO!';
+        return 'FINISH!';
       default:
         return '';
     }
@@ -451,11 +451,11 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
   String _getStatusInfoText() {
     if (_currentState == TimerState.stopped) {
       return widget.preparationTimeSeconds > 0
-          ? 'Premi Start'
+          ? 'Press Start'
           : 'Set 1/${widget.totalSets} - Round 1/${widget.totalRounds}';
     }
     if (_currentState == TimerState.finished) {
-      return 'Allenamento Completato!';
+      return 'Workout Completed!';
     }
     String stateText = _getStateText();
     TimerState displayState =
@@ -468,23 +468,23 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
         case TimerState.preparing:
           underlyingStateText = 'PREP';
         case TimerState.work:
-          underlyingStateText = 'LAVORO';
+          underlyingStateText = 'WORK';
         case TimerState.rest:
-          underlyingStateText = 'RIPOSO';
+          underlyingStateText = 'REST';
         case TimerState.restBetweenSets:
           underlyingStateText = 'SET REST';
         default:
           break;
       }
       if (underlyingStateText.isNotEmpty) {
-        stateText = 'PAUSA ($underlyingStateText)';
+        stateText = 'PAUSE ($underlyingStateText)';
       }
     }
     switch (displayState) {
       case TimerState.preparing:
         return stateText;
       case TimerState.restBetweenSets:
-        return '$stateText - Prossimo Set: ${_currentSet + 1}/${widget.totalSets}';
+        return '$stateText - Next Set: ${_currentSet + 1}/${widget.totalSets}';
       case TimerState.work:
       case TimerState.rest:
         return '$stateText - Set $_currentSet/${widget.totalSets} - Round $_currentRound/${widget.totalRounds}';
@@ -533,7 +533,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
     return Scaffold(
       appBar: AppBar(
         // Reset title to simple text
-        title: const Text('Timer Allenamento'),
+        title: const Text('Workout Timer'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         leading: IconButton(
@@ -648,7 +648,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
                     children: <Widget>[
                       _buildSkipButton(
                         icon: Icons.skip_previous_rounded,
-                        tooltip: 'Salta Indietro',
+                        tooltip: 'Skip Behind',
                         onPressed: canSkip ? _skipPrevious : null,
                         color:
                             canSkip
@@ -679,7 +679,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
                       ),
                       _buildSkipButton(
                         icon: Icons.skip_next_rounded,
-                        tooltip: 'Salta Avanti',
+                        tooltip: 'Skip Next',
                         onPressed: canSkip ? _skipNext : null,
                         color:
                             canSkip
@@ -691,7 +691,7 @@ class _TabataTimerScreenState extends State<TabataTimerScreen>
                 else
                   ElevatedButton.icon(
                     icon: const Icon(Icons.settings_rounded),
-                    label: const Text('Nuovo Allenamento'),
+                    label: const Text('New Workout'),
                     onPressed: () {
                       if (mounted) Navigator.pop(context);
                     },

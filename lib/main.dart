@@ -6,7 +6,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Add this line
   runApp(
     MaterialApp(
-      title: 'Tabata Timer',
+      title: 'Tabata Time',
       theme: ThemeData(
         // ... your theme data ...
         primarySwatch: Colors.deepPurple,
